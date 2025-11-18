@@ -1,8 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nếu Có Hai Trái Tim - Lofi Chill</title>
   <style>
     body {
       font-family: 'Times New Roman', serif;
@@ -12,103 +13,158 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
-      padding: 1rem;
-      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      overflow: hidden;
+      background: #0f0c29;
+      background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
       color: #ecf0f1;
       text-align: center;
-      cursor: pointer;
+      user-select: none;
     }
-    
-    .message {
-      font-size: 1.2rem;
-      line-height: 1.6;
-      max-width: 500px;
+    #canvas-container {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+    }
+    .content {
+      z-index: 10;
+      max-width: 90%;
+      padding: 20px;
+    }
+    .quote-big {
+      font-size: 1.8rem;
+      line-height: 1.5;
       margin-bottom: 2rem;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      opacity: 0;
+      animation: fadeIn 3s forwards 1s;
+      text-shadow: 0 0 20px rgba(255,255,255,0.4);
     }
-    
-    .quote {
-      font-style: italic;
-      margin-top: 2rem;
-      opacity: 0.8;
+    .author {
       font-size: 1rem;
-    }
-    
-    .status {
-      margin-top: 1.5rem;
-      font-size: 0.9rem;
       opacity: 0.7;
-    }
-    
-    .instruction {
       margin-top: 2rem;
-      padding: 10px 20px;
-      border: 1px solid rgba(236, 240, 241, 0.3);
-      border-radius: 5px;
-      opacity: 0.8;
-      transition: all 0.3s ease;
+      font-style: italic;
     }
-    
-    .instruction:hover {
-      opacity: 1;
-      background: rgba(0, 0, 0, 0.2);
+    .status {
+      margin-top: 2.5rem;
+      font-size: 0.75rem;
+      opacity: 0.6;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    /* Nút phát nhạc nhỏ xinh */
+    .play-btn {
+      margin-top: 2rem;
+      padding: 9px 28px;        /* giảm từ 14px → 9px, 40px → 28px */
+      font-size: 0.95rem;       /* chữ nhỏ hơn một chút */
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 50px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.08);
+      transition: all 0.4s ease;
+      backdrop-filter: blur(4px);
+    }
+    .play-btn:hover {
+      background: rgba(255,255,255,0.2);
+      border-color: #fff;
+      box-shadow: 0 0 18px rgba(255,255,255,0.4);
+      transform: translateY(-2px);
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
     }
   </style>
 </head>
 <body>
-  <div class="message">
-    Trong im lặng của khoảnh khắc này, âm nhạc sẽ vang lên như một lời thì thầm...
-  </div>
-  
-  <div class="quote">
-    "Cô đơn không phải là một mình, mà là khi chúng ta không tìm thấy tiếng nói chung với nhau"
-  </div>
-  
-  <div class="status" id="status">Hãy chạm vào bất kỳ đâu để bắt đầu...</div>
-  
-  <div class="instruction" id="instruction">
-    Chạm vào đây hoặc bất kỳ đâu trên màn hình
-  </div>
+  <canvas id="canvas-container"></canvas>
+  <audio id="audio" src="y:\video\Nếu Có Hai Trái Tim (Lofi Ver).mp3" preload="auto"></audio>
 
-  <!-- Audio element ẩn -->
-  <audio id="player" preload="auto">
-    <source src="toi2.mp3" type="audio/mpeg">
-    Trình duyệt của bạn không hỗ trợ thẻ audio.
-  </audio>
+  <div class="content">
+    <div class="quote-big">
+      Nếu có hai trái tim<br>
+      anh sẽ dành cả hai cho em<br>
+      để em không bao giờ phải nghi ngờ<br>
+      rằng anh yêu em nhiều đến nhường nào...
+    </div>
+    <!-- <div class="author">— Dương PM, Lofi 2024 —</div>
+
+    <div class="status" id="status">Sẵn sàng để chill...</div> -->
+    <div class="play-btn" id="play-btn">Phát nhạc</div>
+  </div>
 
   <script>
+    const audio = document.getElementById('audio');
+    const playBtn = document.getElementById('play-btn');
     const status = document.getElementById('status');
-    const instruction = document.getElementById('instruction');
-    const player = document.getElementById('player');
-    let hasInteracted = false;
+    let playing = false;
 
-    function startPlayback() {
-      if (hasInteracted) return;
-      
-      hasInteracted = true;
-      status.textContent = 'Âm thanh sẽ bắt đầu sau 1 giây...';
-      instruction.style.display = 'none';
-      
-      setTimeout(async () => {
-        try {
-          await player.play();
-          status.textContent = 'Âm thanh đang vang lên...';
-          
-          player.onended = () => { 
-            status.textContent = 'Âm thanh đã tắt, chỉ còn lại sự im lặng...'; 
-          };
-          
-        } catch(err) {
-          console.error(err);
-          status.textContent = 'Không thể phát âm thanh...';
-        }
-      }, 1000);
+    playBtn.onclick = () => {
+      if (playing) {
+        audio.pause();
+        playBtn.textContent = "Tiếp tục";
+        status.textContent = "Đã tạm dừng";
+        playing = false;
+      } else {
+        audio.play().then(() => {
+          playBtn.textContent = "Tạm dừng";
+          status.textContent = "Đang chill thật sâu...";
+          playing = true;
+        }).catch(err => {
+          status.textContent = "Không tìm thấy file nhạc";
+          alert("Kiểm tra lại đường dẫn file MP3 nhé!");
+        });
+      }
+    };
+
+    audio.onended = () => {
+      playing = false;
+      playBtn.textContent = "Nghe lại nào";
+      status.textContent = "Hết rồi... nhưng vẫn muốn nghe lại đúng không?";
+    };
+
+    // Hiệu ứng tuyết rơi (giữ nguyên)
+    const canvas = document.getElementById('canvas-container');
+    const ctx = canvas.getContext('2d');
+    let w, h, particles = [];
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    class Particle {
+      constructor() { this.reset(); }
+      reset() {
+        this.x = Math.random() * w;
+        this.y = Math.random() * h;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = (Math.random() - 0.5) * 0.5;
+        this.size = Math.random() * 2 + 0.5;
+        this.alpha = Math.random() * 0.5 + 0.2;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x > w || this.y < 0 || this.y > h) this.reset();
+      }
+      draw() {
+        ctx.fillStyle = `rgba(255,255,255,${this.alpha})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
-    // Thêm event listener cho toàn bộ body
-    document.body.addEventListener('click', startPlayback);
-    document.body.addEventListener('touchstart', startPlayback);
+    for (let i = 0; i < 90; i++) particles.push(new Particle());
+
+    function loop() {
+      ctx.clearRect(0, 0, w, h);
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(loop);
+    }
+    loop();
   </script>
 </body>
-
 </html>
